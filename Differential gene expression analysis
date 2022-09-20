@@ -1,0 +1,11 @@
+
+#Adaptor trimming
+
+cutadapt -a AGATCGGAAGAG -A AGATCGGAAGAG -o Output1 -p Output2 -m 1 Input1 Input2
+
+
+STAR alignment 
+
+
+
+
