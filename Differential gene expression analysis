@@ -85,7 +85,7 @@ log.norm.counts <- log2(counts_normalized + 1)
 
 
 
-###Heirachal clustering and PCA plot
+###Heirachal clustering and PCA plot - using R studio
 
 library(vsn)
 library(ggplot2)
@@ -106,7 +106,7 @@ print(P)
 
 
 
-###Differential gene expression analysis
+###Differential gene expression analysis - using R studio
 
 library (NMF)
 
