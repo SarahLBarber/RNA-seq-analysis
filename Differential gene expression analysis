@@ -1,11 +1,154 @@
 
-#Adaptor trimming
+###Adaptor trimming - using BASH
 
-cutadapt -a AGATCGGAAGAG -A AGATCGGAAGAG -o Output1 -p Output2 -m 1 Input1 Input2
+cutadapt -a AGATCGGAAGAG -A AGATCGGAAGAG -o Cutadapt_output_read_1.fastq.gz -p Cutadapt_output_read_2.fastq.gz -m 50 Input_read_1.fastq.gz Input_read_2.fastq.gz
 
-
-STAR alignment 
-
+fastqc *fastq.gz --extract -o FastqcDirectory/
 
 
 
+
+
+
+###STAR alignment - using BASH
+
+runSTAR=Path_to_STAR/STAR-2.7.10a/bin/Linux_x86_64_static/STAR
+
+${runSTAR} --runMode genomeGenerate --genomeDir ~/STARindexDirectory --genomeFastaFiles path_to_reference_genome/reference_genome.fa  
+            --sjdbGTFfile path_to_annotation_file/annotation.gtf --sjdbOverhang 149 --runThreadN 48			
+
+FILES=`ls -m Cutadapt_output_read_1.fastq.gz Cutadapt_output_read_2.fastq.gz | sed 's/ //g'`
+
+FILES=`echo $FILES | sed 's/ //g'`
+
+${runSTAR} --genomeDir ~/STARindex/ --readFilesIn $FILES --readFilesCommand zcat --outFileNamePrefix STARalignment_directory/filename_prefix_ 
+            --outFilterMultimapNmax 1 --outReadsUnmapped Fastx --outSAMtype BAM SortedByCoordinate --outFilterScoreMinOverLread 0.3 
+            --outFilterMatchNminOverLread 0.3 --twopassMode Basic --runThreadN 48
+         
+         
+         
+         
+         
+###Read counting - using BASH
+
+path_to_featureCounts/featureCounts -O -a path_to_annotation_file/annotation.gtf -o featurecounts_results.txt STARalignment_directory/*bam
+
+
+
+
+
+#Preprocessing of read counts - using R studio
+
+
+library (magrittr)
+library (DESeq2)
+
+read.counts <- read.table("~path_to_featurecounts_results/featurecounts_results.txt", header=TRUE) 
+
+row.names(read.counts) <- read.counts$Geneid
+
+read.counts <- read.counts[-c(1:6)]
+
+names(read.counts) <- c("Control_only_1", "Control_only_2", "Control_only_3", "Control_only_4", "Control_only_5", "Control_PD1_1", 
+            "Control_PD1_2", "Control_PD1_3", "Control_PD1_4", "Control_PD1_5", "Letrozole_only_1", "Letrozole_only_2", "Letrozole_only_3", 
+            "Letrozole_only_4", "Letrozole_only_5", "Letrozole_PD1_1", "Letrozole_PD1_2", "Letrozole_PD1_3", "Letrozole_PD1_4", "Letrozole_PD1_5")
+
+treatment_condition_info <- data.frame(condition=gsub("_[0 -9]+", "", names (read.counts)), row.names=names(read.counts))
+
+DESeq.ds <- DESeqDataSetFromMatrix(countData=read.counts, colData=treatment_condition_info, design= ~ condition)
+
+DESeq.ds <- DESeq.ds[ rowSums(counts(DESeq.ds)) > 0, ]
+
+
+
+
+###Estimating size factors - using R studio
+
+
+DESeq.ds <- estimateSizeFactors(DESeq.ds)
+
+sizeFactors(DESeq.ds)
+
+colData(DESeq.ds)
+
+
+###Normalisation and log transformation of read counts - using R studio
+
+
+counts_normalized <- counts(DESeq.ds, normalized=TRUE)
+
+log.norm.counts <- log2(counts_normalized + 1)
+
+
+
+###Heirachal clustering and PCA plot
+
+library(vsn)
+library(ggplot2)
+
+DESeq.rlog <- rlog(DESeq.ds, blind=TRUE)
+
+rlog.norm.counts <- assay(DESeq.rlog)
+
+heirachal_clustering_rlog <- as.dist(1 - cor(rlog.norm.counts, method="pearson"))
+plot(hclust(heirachal_clustering_rlog), labels=colnames(rlog.norm.counts), main=" rlog transformed read counts:Pearson correlation")
+
+PCAplot <- plotPCA(DESeq.rlog)
+PCAplot <- P + theme_bw() + ggtitle("Rlog transformed counts")
+print(P)
+
+
+
+
+###Differential gene expression analysis
+
+library (NMF)
+
+colData(DESeq.ds)$condition <- relevel(colData(DESeq.ds)$condition,"Control_only")
+
+DESeq.ds <- DESeq(DESeq.ds)
+
+DESeq.ds <- estimateSizeFactors(DESeq.ds)
+
+DESeq.ds <- estimateDispersions(DESeq.ds)
+
+DESeq.ds <- nbinomWaldTest(DESeq.ds)
+
+DGE.results <- results(DESeq.ds, independentFiltering = TRUE , alpha = 0.01)
+
+table(DGE.results$padj < 0.01)
+
+DGE.results.Padj.sorted <- DGE.results[order(DGE.results$padj), ]
+
+DGEgenes <- rownames(subset(DGE.results.sorted, padj < 0.01))
+
+DGEgenes <- as.matrix(DGEgenes)
+
+DGE.results.sorted.matrix <- as.matrix(DGE.results.Padj.sorted)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+           
+        
+           
