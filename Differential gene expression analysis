@@ -37,8 +37,7 @@ path_to_featureCounts/featureCounts -O -a path_to_annotation_file/annotation.gtf
 
 
 
-#Preprocessing of read counts - using R studio
-
+###Preprocessing of read counts - using R studio
 
 library (magrittr)
 library (DESeq2)
@@ -64,7 +63,6 @@ DESeq.ds <- DESeq.ds[ rowSums(counts(DESeq.ds)) > 0, ]
 
 ###Estimating size factors - using R studio
 
-
 DESeq.ds <- estimateSizeFactors(DESeq.ds)
 
 sizeFactors(DESeq.ds)
@@ -72,12 +70,18 @@ sizeFactors(DESeq.ds)
 colData(DESeq.ds)
 
 
-###Normalisation and log transformation of read counts - using R studio
 
+
+
+###Normalisation and log transformation of read counts - using R studio
 
 counts_normalized <- counts(DESeq.ds, normalized=TRUE)
 
 log.norm.counts <- log2(counts_normalized + 1)
+
+
+
+
 
 
 
@@ -96,6 +100,8 @@ plot(hclust(heirachal_clustering_rlog), labels=colnames(rlog.norm.counts), main=
 PCAplot <- plotPCA(DESeq.rlog)
 PCAplot <- P + theme_bw() + ggtitle("Rlog transformed counts")
 print(P)
+
+
 
 
 
