@@ -108,16 +108,14 @@ print(P)
 
 ###Differential gene expression analysis - using R studio
 
+
 library (NMF)
 
 colData(DESeq.ds)$condition <- relevel(colData(DESeq.ds)$condition,"Control_only")
 
 DESeq.ds <- DESeq(DESeq.ds)
-
 DESeq.ds <- estimateSizeFactors(DESeq.ds)
-
 DESeq.ds <- estimateDispersions(DESeq.ds)
-
 DESeq.ds <- nbinomWaldTest(DESeq.ds)
 
 DGE.results <- results(DESeq.ds, independentFiltering = TRUE , alpha = 0.01)
@@ -130,11 +128,51 @@ DGEgenes <- rownames(subset(DGE.results.sorted, padj < 0.01))
 
 DGEgenes <- as.matrix(DGEgenes)
 
-DGE.results.sorted.matrix <- as.matrix(DGE.results.Padj.sorted)
+
+DGEgenesheatmap <- log.norm.counts[DGEgenes,]
+DGEgenesheatmap <- as.matrix(DGEgenesheatmap[1:10,])
+aheatmap(DGEgenesheatmap, Rowv = NA , Colv = NA)
 
 
 
 
+
+
+
+#### Gene ontology analysis and output in bar plot
+
+
+SignificantGenes <- as.matrix(DGE.results.sorted.matrix[1:__,])
+SignificantGenesGeneIDs <- getBM(attributes = c("ensembl_gene_id", "ensembl_transcript_id", "external_gene_name"),
+                          filters = "ensembl_transcript_id", values = SignificantGenes,
+                          mart = mart)
+SignificantGenesGeneID <- SignificantGenesGeneIDs$ensembl_gene_id
+
+GOresults <- enrichGO(gene = SignificantGenesGeneID, OrgDb = "org.Mm.eg.db", keyType = "ENSEMBL", ont = "BP")
+as.data.frame(GOresults)
+fit <- plot(barplot(GOresults, showCategory = 20, label = 60)) 
+
+
+
+#### Gene set enrichment analysis
+
+
+GSEAgenes = DGE.results.sorted.matrix[,"stat"]
+
+keytypes(org.Mm.eg.db)
+head(keys(org.Mm.eg.db, keytype="ENSEMBLTRANS"))
+
+GSEAEntrezIDs = AnnotationDbi::select(org.Mm.eg.db, keys=names(GSEAgenes), keytype="ENSEMBLTRANS", columns="ENTREZID")
+
+names(GSEAgenes) = GSEAEntreIDs$ENTREZID[ match(names(GSEAgenes), GSEAEntrezID$ENSEMBLTRANS)]
+
+GSEAanalysis = GSEAgenes[!is.na(names(GSEAControlVsLetPD1))]
+
+GSEAanalysisOrder = sort(GSEAanalysis, decreasing=TRUE)
+
+GSEA = gsePathway(GSEAanalysisOrder, organism = "mouse", pvalueCutoff = 0.01, pAdjustMethod = "BH", minGSSize=20, maxGSSize=200, verbose=T)
+
+dotplot(GSEA, showCategory=10, split=".sign", label_format = 70) + facet_grid(.~.sign) 
 
 
 
