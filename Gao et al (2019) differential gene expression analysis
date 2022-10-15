@@ -1,0 +1,213 @@
+#### Gao et al (2019) extracted RNA from 56 tumours in the control (no treatment) ER+ breast cancer group and 157 tumours in the treatment group on day 0, before treatment was applied, to use for gene expression analysis. The tumours in the treatment groups were then treated with letrozole and 14 days later, both control and treated tumours were removed by surgery and RNA extracted for gene expression analysis.
+#### Would expect similar transcriptional changes upon the same treatment in both human ER+ breast cancer and mouse mammary tumours.
+### Non-normalised data for the control at day 0 and day 14 was found in the NCBI Gene expression omnibus (GEO) database under accession GSE105777.
+### Non-normalised data from the letrozole treated tumour at day 0 and day 14 was found in GEO with accession GSE126870.
+
+
+#### Data pre-processing
+
+
+LetrozoleData = read.table("Letrozole_treated_Gao_data.txt")
+
+colnames(LetrozoleData) = LetrozoleData[1,] 
+rownames(LetrozoleData) = LetrozoleData[,1] 
+LetrozoleData = LetrozoleData[2:47324,] 
+LetrozoleData = LetrozoleData[,2:629] 
+
+DataBaseline = LetrozoleData[,1:314] 
+DataSurgery = LetrozoleData[,315:628]
+
+TreatedBaseline = as.matrix(DataBaseline[,seq(1,ncol(datab),2)])
+TreatmentSignal = as.matrix(DataSignal[,seq(1,ncol(datas),2)])
+
+cbind( colnames(TreatedBaseline), colnames(TreatedSurgery) )
+
+
+
+
+####Normalise data
+
+
+rawBaseline = matrix(as.numeric(TreatedBaseline), nrow(TreatedBaseline), ncol(TreatedBaseline))
+expBaseline = log2(rawBaseline)
+plot(density(expBaseline[,1]))
+for(i in 2:ncol(expBaseline)) lines(density(expBaseline[,i]))
+
+library(limma)
+library(gplots)
+normBaseline = normalizeBetweenArrays(expBaseline) 
+
+plot(density(normBaseline[,1])) 
+for(i in 2:ncol(normBaseline)) lines(density(normBaseline[,i]))
+heatmap.2(cor(normBaseline), col='bluered', trace='none')
+
+rawSurgery = matrix(as.numeric(TreatedSurgery), nrow(TreatedSurgery), ncol(TreatedSurgery))
+expSurgery = log2(rawSurgery)
+plot(density(expSurgery[,1]))
+for(i in 2:ncol(expSurgery)) lines(density(expSurgery[,i]))
+
+normSurgery = normalizeBetweenArrays(expSurgery)
+
+plot(density(normSurgery[,1]))
+for(i in 2:ncol(normSurgery)) lines(density(normSurgery[,i]))
+heatmap.2(cor(normSurgery), col='bluered', trace='none')
+
+colnames(normSurgery) = colnames(TreatedSurgery)
+colnames(normBaseline) = colnames(TreatedBaseline)
+rownames(normSurgery) = rownames(TreatedSurgery)
+rownames(normBaseline) = rownames(TreatedBaseline)
+
+
+##### Pair surgery to baseline for each individual
+TreatmentDelta = c()
+for(i in seq(1, 157, by=1)) TreatmentDelta = cbind(TreatmentDelta, as.matrix(normSurgery[,i]-normBaseline[,i]))
+colnames(TreatmentDelta) = colnames(normBaseline)
+
+
+### Pre-processing of control data
+NoTreatment = read.table("No_treatment_letrozole.txt")
+
+colnames(NoTreatment) = data[1,] 
+rownames(NoTreatment) = data[,1] 
+NoTreatment = NoTreatment[2:47258,] 
+NoTreatment = NoTreatment[,2:449] 
+
+NoTreatmentSignal = as.matrix(notreatment[,seq(1,ncol(notreatment),4)]) 
+
+Normalise control data #Same way as for the treatment group
+RawControl = matrix(as.numeric(NoTreatmentSignal), nrow(NoTreatmentSignal), ncol(NoTreatmentSignal))
+ExpControl = log2(RawControl)
+plot(density(ExpControl[,1]))
+for(i in 2:ncol(ExpControl)) lines(density(ExpControl[,i]))
+
+NormControl = normalizeBetweenArrays(ExpControl)
+
+plot(density(NormControl[,1]))
+for(i in 2:ncol(NormControl)) lines(density(NormControl[,i]))
+heatmap.2(cor(NormControl), col='bluered', trace='none')
+
+colnames(NormControl) = colnames(NoTreatmentSignal)
+rownames(NormControl) = rownames(NoTreatmentSignal)
+
+
+Baseline = NormControl[ ,grep("D",colnames(NormControl))]
+
+suf = strsplit(colnames(NormControl), ".", fixed=TRUE) %>% 
+  lapply(., function(x) x[2]) %>% 
+  unlist() 
+grep("S", suf) 
+Surgery = NormControl[ ,grep("S", suf)] 
+
+SurgeryNumbers = strsplit(colnames(Surgery), ".", fixed=TRUE) %>% 
+  lapply(., function(x) x[2]) %>% 
+  unlist() %>% gsub("S", "", .) %>% as.numeric()
+
+BaselineNumbers = strsplit(colnames(Baseline), ".", fixed=TRUE) %>% 
+  lapply(., function(x) x[2]) %>% 
+  unlist() %>% gsub("D", "", .) %>% as.numeric()
+
+sum(sort(SurgeryNumbers) == sort(BaselineNumbers))
+
+length(SurgeryNumbers)
+length(BaselineNumbers)
+
+order(SurgeryNumbers)
+order(BaselineNumbers)
+
+SurgeryOrdered = Surgery[, order(SurgeryNumbers)]
+BaselineOrdered = Baseline[, order(BaselineNumbers)]
+
+cbind( colnames(SurgeryOrdered), colnames(BaselineOrdered) )
+
+ControlSurgery = matrix(as.numeric(SurgeryOrdered), nrow(SurgeryOrdered), ncol(SurgeryOrdered))
+ControlBaseline = matrix(as.numeric(BaselineOrdered), nrow(BaselineOrdered), ncol(BaselineOrdered))
+
+colnames(ControlSurgery) = colnames(SurgeryOrdered)
+colnames(ControlBaseline) = colnames(baselineOrdered)
+row.names(ControlBaseline) = row.names(NoTreatmentSignal) 
+row.names(ControlSurgery) = row.names(NoTreatmentSignal)
+
+
+
+
+######Pair surgery to baseline measurements for each control individual
+
+
+ControlDelta = c()
+for(i in seq(1, 56, by=1)) ControlDelta = cbind(ControlDelta, as.matrix(ControlSurgery[,i]-ControlBaseline[,i]))
+colnames(ControlDelta) = colnames(ControlBaseline)
+
+
+
+
+
+#####Combine paired control data and paired treatment data into one matrix
+
+
+TreatmentDeltaSorted = TreatmentDelta[ order(as.numeric(row.names(TreatmentDelta))), ]
+Treatment <- as_tibble(TreatmentDelta)
+Treatment_names <- rownames(TreatmentDelta)
+
+Control <- as_tibble(ControlDelta)
+Control_names <- rownames(ControlDelta)
+
+library(tidyverse)
+
+Treatment <- add_column(Treatment, ids = Treatment_names)
+Control <- add_column(Control, ids = Control_names)
+
+JoinedData <- inner_join(Treatment, Control)
+ids <- JoinedData$ids
+JoinedData <- JoinedData %>% select(-ids)
+JoinedMatrix <- as.matrix(JoinedData)
+rownames(JoinedMatrix) <- ids
+
+grep("Treated", rownames(JoinedMatrix) ) #Add rownames to joined matrix
+
+
+
+
+########Differential gene expression analysis
+
+
+GeneExpressionComparison  <- ifelse(grepl("Treated", colnames(JoinedMatrix)), 1, 2) 
+GeneExpressionMatrix <- as.matrix(GeneExpressionComparison)
+rownames(GeneExpressionMatrix) = colnames(JoinedMatrix)
+
+design = model.matrix(~GeneExpressionMatrix)
+rownames(design) = rownames(GeneExpressionMatrix)
+colnames(design) = c("Intercept", "1isTreated") 
+
+
+designlim = lmFit(GeneExpressionMatrix,design)
+designlim = eBayes(designlim)
+TopTableLetrozole = topTable(designlim, coef=2, adjust.method = "BH", n=nrow(matrix))
+TopTableSignificantGenes = TopTableLetrozole[TopTableLetrozole$adj.P.Val<0.01,]
+TopTableDataFrame <- as.data.frame(TopTableSignificantGenes)
+
+
+
+
+#####Gene ontology analysis of significantly differnetially expressed genes
+
+write.table(rownames(TopTableDataFrame), file="SignificantLetHumanGenes.txt", row.names=FALSE, col.names=FALSE) 
+SigLet.table <- read.table("SignificantLetGeneNames.txt")
+
+library(clusterProfiler)
+library(org.Hs.eg.db)
+library(AnnotationDbi)
+
+GOLetHuman <- SigLet.table$V1
+keytypes(org.Hs.eg.db)
+head(keys(org.Hs.eg.db, keytype="SYMBOL"))
+
+GOLetHuman_results <- enrichGO(gene = GOLetHuman, OrgDb = "org.Hs.eg.db", keyType = "SYMBOL", ont = "BP")
+as.data.frame(GOLetHuman_results)
+fit <- plot(barplot(GOLetHuman_results, showCategory = 20, label = 60)) 
+
+
+
+
+
+
+
