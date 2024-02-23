@@ -1,3 +1,4 @@
 This project undertakes the analysis of RNA-sequencing of untreated mouse mammary tumours and mouse mammary tumours treated with letrozole only, PD-1 antibodies only, and a combination of the two. Mouse mammary tumours were used as a model for ER+ breast cancer to understand the molecular mechanisms behind PD-1 immune checkpoint inhibitor treatment. Differential gene expression analysis was undertaken to compare control and treated mouse mammary tumours to determine how PD-1 immune checkpoint inhibitors affect tumour gene expression patterns. 
-
+'Differential gene expression analysis' contains all the code for BASH and R studio used in the RNA-seq analysis pipeline of treated mouse mammary tumours including downstream analyses of gene ontology and gene set enrichment analysis. 
+'Gao et al (2019) differential gene expression analyssi' contains all code used in the RNA-seq analysis pipeline of human ER+ breast cancers treated with letrozole compared to untreated human ER+ breast cancers from the Gao et al (2019) dataset. 
 
